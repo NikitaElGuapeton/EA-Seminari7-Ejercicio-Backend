@@ -19,6 +19,7 @@ import Message from './models/Message';
 import type { ChatJoinPayload, ChatMessagePayload } from './types/chat';
 const router = express();
 import userRoutes from './routes/Users';
+import cookieParser from 'cookie-parser';
 
 /** Connect to Mongo */
 mongoose
@@ -35,6 +36,8 @@ const StartServer = () => {
 
     router.use(express.urlencoded({ extended: true }));
     router.use(express.json());
+    // Interpreta la cabecera Cookie y deja sus valores disponibles en req.cookies
+    router.use(cookieParser());
 
     /** CORS */
     router.use(Cors);
@@ -78,7 +81,7 @@ const StartServer = () => {
     router.use(ErrorHandler);
 
     const server = http.createServer(router);
-const io = new Server(server, {
+    const io = new Server(server, {
     cors: {
         origin: config.cors.origin,
         methods: ['GET', 'POST']
@@ -169,6 +172,11 @@ io.on('connection', (socket) => {
     // Dejamos registrado cuándo se desconecta un usuario.
     socket.on('disconnect', () => {
         Logging.info(`Socket disconnected for user ${userId}`);
+    });
+
+    // Evento de prueba independiente del chat: responde al socket que envió el ping.
+    socket.on('server:ping', () => {
+        socket.emit('server:pong');
     });
 });
 

@@ -3,15 +3,20 @@ import express from 'express';
 import controller from '../controllers/Auth';
 
 import { Schemas, ValidateJoi } from '../middleware/Joi';
+import { VerifyToken } from '../middleware/VerifyToken';
 
 // Rutas de autenticacion. Son publicas: no piden token (refresh se autentica con su propio
 // refresh token, que va en el body). Cada una valida el body con Joi y llama a su controlador.
 const router = express.Router();
 router.post('/register', ValidateJoi(Schemas.auth.register), controller.register);
 router.post('/login', ValidateJoi(Schemas.auth.login), controller.login);
-router.post('/refresh', ValidateJoi(Schemas.auth.refresh), controller.refresh);
-export = router;
+router.post('/refresh', controller.refresh);
+router.post('/logout', controller.logout);
 
+// Devuelve el usuario asociado al access token enviado en Authorization.
+router.get('/me', VerifyToken, controller.me);
+
+export = router;
 // Documentacion de Swagger de las tres rutas.
 // security: [] quita el candado: son las unicas rutas que no necesitan token.
 

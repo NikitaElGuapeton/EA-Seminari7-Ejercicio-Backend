@@ -66,4 +66,11 @@ export const refresh = async (refreshToken: string) => {
     return { token: signAccessToken(user) };
 };
 
-export default { register, login, refresh };
+// Busca al usuario autenticado por su id y lo devuelve sin la contraseña.
+export const getById = async (id: string) => {
+    const user = await User.findById(id);
+
+    return user ? user.toJSON() : null;
+};
+
+export default { register, login, refresh, getById };
