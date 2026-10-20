@@ -1,3 +1,79 @@
+1. Video link: https://drive.google.com/file/d/1lN6Y5ByOOmbknbfD66ZwwJOJHGWDy1Xv/view?usp=drive_link
+
+2. Referencia del material consultado
+- Videos propuestos en ATENEA.
+- Los reportes de ejemplo proporcionados.
+- La explicación en clase del profesor.
+
+3. Detalle del uso de la IA 
+Herramientas y Modelos utilizados: Gemini 3.6 Flash y Claude 3.5 Sonnet.
+
+- Registro 1: Instalación y uso de cookies en Express
+  - Prompt literal: "Cómo puedo instalar y configurar las cookies en Express para poder gestionar el refresh token de forma segura?"
+
+  - Respuesta de la IA: Sugirió utilizar la librería cookie-parser, explicando cómo instalarla con npm y cómo añadirla como middleware global en la aplicación de Express utilizando app.use(cookieParser()).
+
+  - Incoherencias detectadas: La IA omitió que, al estar trabajando con TypeScript, también era necesario instalar los tipos de la librería para evitar errores de compilación, y no especificó que el middleware debía colocarse antes de la declaración de las rutas.
+
+  - Solución / Adaptación manual: Instalé manualmente @types/cookie-parser y me aseguré de ordenar correctamente los middlewares en server.ts para que las cookies estuvieran disponibles en las rutas de /auth.
+
+- Registro 2: Parámetros de seguridad del Refresh Token
+  - Prompt literal: "Qué parámetros de seguridad debería tener la cookie del refresh token cuando la devuelvo desde el login?"
+
+  - Respuesta de la IA: Enumeró varias opciones como httpOnly: true, sameSite: 'strict', path: '/' y secure: true.
+
+  - Incoherencias detectadas: La IA recomendó usar secure: true por defecto. Esto provocaba que, en desarrollo local (donde se usa http://localhost y no https), el navegador rechazara guardar la cookie. Además, proponía un path global que exponía la cookie a rutas innecesarias.
+
+  - Solución / Adaptación manual: Condicioné la propiedad secure para que solo fuera true en producción (process.env.NODE_ENV === 'production') y restringí el alcance de la cookie poniendo path: '/auth' para que solo se enviara a los endpoints de autenticación.
+
+- Registro 3: Validación del Refresh Token en el backend
+  - Prompt literal: "En el endpoint de refresh, cómo puedo comprobar y validar el token que me llega por la cookie antes de generar uno nuevo?"
+
+  - Respuesta de la IA: Generó un código que extraía el token con req.cookies.refreshToken, utilizaba jwt.verify para comprobar la firma y automáticamente emitía un nuevo access token.
+
+  - Incoherencias detectadas: El enfoque de la IA era demasiado básico y confiaba ciegamente en la validez criptográfica del token. No tenía en cuenta qué pasaría si el usuario había sido eliminado de la base de datos mientras su sesión seguía activa.
+
+  - Solución / Adaptación manual: Añadí una consulta a la base de datos después del jwt.verify para buscar al usuario por su ID extraído del payload. Si el usuario ya no existe, devuelvo un error 401 y limpio la cookie por motivos de seguridad.
+
+- Registro 4: Guardar el usuario y el uso de withCredentials
+  - Prompt literal: "Tengo problemas porque el navegador no envía la cookie a las llamadas de '/auth'. Además, cómo guardo el usuario una vez hace login usando las signals de Angular 18?"
+
+  - Respuesta de la IA: Explicó que había que añadir la opción withCredentials: true a las peticiones HTTP y dio un ejemplo de actualización de una signal con el token.
+
+  - Incoherencias detectadas: La IA sugirió capturar y enviar la cookie de forma manual leyéndola del document.cookie, lo cual rompe el propósito de una cookie HttpOnly (que es inaccesible por JavaScript).
+
+  - Solución / Adaptación manual: Ignoré la parte de capturar la cookie mediante JS. Simplemente añadí { withCredentials: true } a las llamadas de login y refresh en Angular para que el navegador adjuntara la cookie automáticamente. En el login, guardo el token y el usuario en las signals. En el refresh, solo actualizo la signal del nuevo access token.
+
+- Registro 5: Recuperación de sesión al recargar la página
+  - Prompt literal: "Cuando recargo la página pierdo la sesión del usuario. Cómo puedo hacer que Angular llame a '/auth/refresh' seguido de '/auth/me' justo al arrancar, y que se espere antes de cargar las rutas?"
+
+  - Respuesta de la IA: Propuso crear un método en el servicio de autenticación que encadenara las dos llamadas y utilizar la función provideAppInitializer en el app.config.ts.
+
+  - Incoherencias detectadas: El código generado para encadenar las llamadas no controlaba bien los errores. Si el refresh devolvía un 401 (es decir, el usuario entra sin sesión previa), la aplicación lanzaba un error por consola y bloqueaba el arranque inicial en lugar de seguir adelante como un visitante anónimo.
+
+  - Solución / Adaptación manual: Creé la función initializeSession en auth.service.ts capturando el error 401 de forma silenciosa. Así, si la cookie es válida, obtengo el token y el usuario; si algo da 401, asumo que no hay sesión, dejo el usuario nulo y la app arranca con normalidad llevándolo al login. Esto se ejecuta a través de provideAppInitializer.
+
+- Registro 6: Eventos Ping/Pong con Socket.IO
+  - Prompt literal: "Para la práctica de WebSockets necesito implementar un sistema de Ping y Pong para saber si la conexión está viva. Cómo lo puedo hacer entre Angular y Express?"
+
+  - Respuesta de la IA: Propuso crear un setInterval en Angular que hiciera un socket.emit('ping') cada cierto tiempo, y en el backend escuchar este evento para responder con un socket.emit('pong').
+
+  - Incoherencias detectadas: La IA omitió mencionar que las versiones modernas de Socket.IO ya traen un sistema de heartbeat integrado de forma nativa por debajo, por lo que su solución era redundante a nivel de protocolo.
+
+  - Solución / Adaptación manual: Aunque Socket.IO lo hace por debajo, como era un requerimiento explícito del enunciado de la práctica, implementé el escuchador socket.on('ping') en el backend de Express que retorna el respectivo pong, garantizando así que se cumplía al pie de la letra con el ejercicio.
+
+- Registro 7: Protección de rutas con AuthGuard en Angular 18
+  - Prompt literal: "Cómo puedo hacer un AuthGuard funcional en Angular 18 para proteger las rutas privadas usando el nuevo sistema de Signals en lugar de Observables?"
+
+  - Respuesta de la IA: Sugirió crear un Guard que utilizaba inject(AuthService) para leer el estado del usuario.
+
+  - Incoherencias detectadas: La IA mezcló sintaxis antigua de clases (implements CanActivate) con conceptos nuevos, y trató de envolver la Signal en Observables, haciendo el código innecesariamente complejo para las versiones modernas de Angular.
+
+  - Solución / Adaptación manual: Descarté la estructura de clases y definí un guard puramente funcional (export const authGuard: CanActivateFn = () => {...}). Dentro, inyecto el servicio, leo directamente el valor de la Signal del usuario, y si es nulo, inyecto el Router para redirigir directamente a la pantalla de /login.
+
+
+
+
 # Seminari 7: backend con JWT y WebSockets
 
 API REST con dos recursos, **autores** y **libros**, organizada en capas (rutas, middleware,
